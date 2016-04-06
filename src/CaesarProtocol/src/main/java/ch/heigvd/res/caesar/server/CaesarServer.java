@@ -1,126 +1,14 @@
-//
-//
-//package ch.heigvd.res.caesar.server;
-//
-//import ch.heigvd.res.caesar.client.*;
-//import ch.heigvd.res.caesar.protocol.Protocol;
-//import java.io.BufferedReader;
-//import java.io.IOException;
-//import java.io.InputStreamReader;
-//import java.io.PrintWriter;
-//import java.net.ServerSocket;
-//import java.net.Socket;
-//import java.util.logging.Level;
-//import java.util.logging.Logger;
-//
-///**
-// *
-// * @author Olivier Liechti (olivier.liechti@heig-vd.ch)
-// */
-//
-//public class CaesarServer {
-//
-//  private static final Logger LOG = Logger.getLogger(CaesarServer.class.getName());
-//  
-//  private int delta;
-//  
-//  public void start() {
-//     
-//     
-//        ServerSocket serverSocket = null;
-//        Socket clientSocket = null;
-//        BufferedReader reader = null;
-//        PrintWriter writer = null;
-//        
-//        String line;
-//        
-//        delta = (int)(Math.random() * (25 - 1) + 1);
-//        
-//     try {
-//        serverSocket = new ServerSocket(Protocol.A_CONSTANT_SHARED_BY_CLIENT_AND_SERVER);
-//     } catch (IOException ex) {
-//        Logger.getLogger(CaesarServer.class.getName()).log(Level.SEVERE, null, ex);
-//     }
-//     
-//        try {
-//           clientSocket = serverSocket.accept();
-//
-//           LOG.log(Level.INFO, "Getting a Reader and a Writer connected to the client socket...");
-//           reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-//           writer = new PrintWriter(clientSocket.getOutputStream());
-//
-//           writer.println("Thank you for connection to " + serverSocket.getLocalSocketAddress());
-//           writer.flush();
-//           writer.println("Here is the Delta that whe got to use: " );
-//           writer.flush();
-//           
-//           writer.println(delta);
-//           writer.flush();
-//           
-//           while (true) {
-//              line = reader.readLine();
-//              if (line.equals("quit")) {
-//                 clientSocket.close();
-//                 reader.close();
-//                 writer.close();
-//              } else {
-//                 writer.println(line);
-//                 writer.flush();
-//              }
-//           }
-//
-//        } catch (IOException ex) {
-//           Logger.getLogger(CaesarServer.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//     
-//  }
-//  
-//     
-//
-//  /**
-//   * @param args the command line arguments
-//   */
-//
-//  public static void main(String[] args) {
-//    System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$tH:%1$tM:%1$tS::%1$tL] Server > %5$s%n");
-//    LOG.info("Caesar server starting...");
-//    LOG.info("Protocol constant: " + Protocol.A_CONSTANT_SHARED_BY_CLIENT_AND_SERVER);
-//    
-//    CaesarServer server = new CaesarServer();
-//    server.start();
-//            
-//  }
-//  
-//}
-//
-//
-//
-//
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ *
+ * @author Olivier Liechti (olivier.liechti@heig-vd.ch)
+ * Modified by: Pascal Sekley & Annie Sandra
+ */
 
 
 package ch.heigvd.res.caesar.server;
 
+import ch.heigvd.res.caesar.protocol.Protocol;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -136,6 +24,7 @@ import java.util.logging.Logger;
  * connection requests.
  *
  * @author Olivier Liechti
+ * Modified by: Pascal Sekley & Annie Sandra
  */
 public class CaesarServer {
 
@@ -214,7 +103,7 @@ public class CaesarServer {
             
             try {
                
-               delta = (int)(Math.random() * (25 - 1) + 1);
+               delta = (int)(Math.random() * 25);
                this.clientSocket = clientSocket;
                in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                out = new PrintWriter(clientSocket.getOutputStream());
@@ -226,24 +115,27 @@ public class CaesarServer {
          @Override
          public void run() {
             String line;
+            String encryptedLine, decryptedLine;
             boolean shouldRun = true;
             Filter filtre = new Filter();
             
             out.println(delta);
             out.flush();
 
-            out.println("Welcome to the Multi-Threaded Server.\nSend me text lines and conclude with the BYE command.");
+            out.println("Welcome to the Multi-Threaded Server.\n Send me text lines and conclude with the BYE command.");
             out.flush();
             
             try {
                LOG.info("Reading until client sends BYE or closes the connection...");
-               
-               while ((shouldRun) && (line = filtre.decrypt(in.readLine(), delta)) != null) {
-                  if (line.equalsIgnoreCase(filtre.decrypt("bye", delta))) {
+               /* We decrypt de message we received from the client and then encrypt our response
+                  before sending */
+               while ((shouldRun) && (line = in.readLine()) != null) {
+                  decryptedLine = filtre.decrypt(line, delta);
+                  if(decryptedLine.equalsIgnoreCase("bye")){
                      shouldRun = false;
                   }
-                  out.println(filtre.encrypt(line, delta));
-                  
+                  encryptedLine = filtre.encrypt(decryptedLine, delta);
+                  out.write(encryptedLine +"\n");                  
                   out.flush();
                }
 
@@ -278,7 +170,7 @@ public class CaesarServer {
    public static void main(String[] args) {
       System.setProperty("java.util.logging.SimpleFormatter.format", "%5$s %n");
 
-      CaesarServer multi = new CaesarServer(2323);
+      CaesarServer multi = new CaesarServer(Protocol.A_CONSTANT_SHARED_BY_CLIENT_AND_SERVER);
       multi.serveClients();
       
    }

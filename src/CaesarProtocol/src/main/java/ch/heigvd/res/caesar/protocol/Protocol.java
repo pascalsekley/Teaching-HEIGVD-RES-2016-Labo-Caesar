@@ -6,6 +6,6 @@ package ch.heigvd.res.caesar.protocol;
  */
 public class Protocol {
   
-  public static final int A_CONSTANT_SHARED_BY_CLIENT_AND_SERVER = 42;
+  public static final int A_CONSTANT_SHARED_BY_CLIENT_AND_SERVER = 2323;
 
 }

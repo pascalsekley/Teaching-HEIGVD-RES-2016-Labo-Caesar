@@ -4,6 +4,7 @@ import ch.heigvd.res.caesar.protocol.Protocol;
 import ch.heigvd.res.caesar.server.Filter;
 import java.io.*;
 import java.net.Socket;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,52 +18,48 @@ public class CaesarClient {
   private static final Logger LOG = Logger.getLogger(CaesarClient.class.getName());
   
   final static int BUFFER_SIZE = 1024;
-  private int delta;
+  private int delta = 0;
   
 
   public void start(){
      Socket clientSocket = null;
-     PrintWriter writer;
      BufferedReader reader;
+     BufferedWriter writer;
      Filter filtre = new Filter();
      String line;
+     String sendEncryptedLine;
+     String receiveEncryptedLine;
      
      
      try {
-        clientSocket = new Socket("www.heig-vd.ch", Protocol.A_CONSTANT_SHARED_BY_CLIENT_AND_SERVER);
+        clientSocket = new Socket("localhost", Protocol.A_CONSTANT_SHARED_BY_CLIENT_AND_SERVER);
 	reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-	writer = new PrintWriter(clientSocket.getOutputStream());
+        writer = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
         
         System.out.println(reader.readLine());
         System.out.println(reader.readLine());
         delta = reader.read();
+        LOG.info("Here is the delta: " + delta);
+        System.out.println(reader.readLine());
         
+        Scanner scan = new Scanner(System.in);
         
-
-           String encryptedByeCommand = filtre.encrypt("bye", delta);
-        while(true){
-           line = reader.readLine();
+        do{
+           System.out.print("Client > ");
+           line = scan.nextLine();
+           sendEncryptedLine = filtre.encrypt(line, delta);
+           writer.write(sendEncryptedLine + "\n");
+           writer.flush();
+           receiveEncryptedLine = filtre.decrypt(reader.readLine(), delta);
+           System.out.println("Server > " + receiveEncryptedLine);
            
-           if(line.equalsIgnoreCase(encryptedByeCommand)){
-              clientSocket.close();
-              reader.close();
-              writer.close();
-           }
-           else{
-              writer.println(filtre.decrypt(reader.readLine(), delta));
-              writer.flush();
-           }
-              
-        }
-
-       
+        } while(!clientSocket.isClosed() && !filtre.decrypt(sendEncryptedLine, delta).equalsIgnoreCase("bye"));
+        
      } catch (IOException ex) {
          LOG.log(Level.SEVERE, null, ex);
       } 
    
   }
-  
-  
 
 
   /**
